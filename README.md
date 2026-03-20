@@ -15,7 +15,7 @@ City-wide urban canopy assessment from the 2025 LiDAR dataset — individual tre
 | **Data Source** | 2025 City of Edmonton Vegetation LiDAR (Contract 934295) |
 | **Analysis Date** | March 2026 |
 | **CRS** | EPSG:3776 (NAD83 / Alberta 3TM ref merid 114 W) |
-| **Datasets (Google Drive)** | [gdrive:edmonton-canopy-analysis](https://drive.google.com/open?id=1UJ0rUjwJS5aFgYrZkSFtBCuhE6GMmX-c) |
+| **Datasets (City Drive)** | [gdrive-coe:edmonton-canopy-analysis](https://drive.google.com/open?id=1vjy95hNi8tvZRm3du0ljJo1u8I0ZNM9G) |
 
 ## Key Results
 
@@ -123,8 +123,8 @@ pip install laspy scipy scikit-learn scikit-image rasterio geopandas \
     shapely pyproj lightgbm xgboost joblib
 
 # Download datasets from Google Drive
-rclone copy gdrive:edmonton-canopy-analysis/data/ data/
-rclone copy gdrive:edmonton-canopy-analysis/outputs/ outputs/
+rclone copy gdrive-coe:edmonton-canopy-analysis/data/ data/
+rclone copy gdrive-coe:edmonton-canopy-analysis/outputs/ outputs/
 
 # Run full pipeline
 python scripts/canopy_cover_analysis.py              # canopy cover
