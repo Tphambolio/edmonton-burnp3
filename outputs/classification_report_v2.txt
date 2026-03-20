@@ -1,0 +1,71 @@
+
+================================================================================
+  CONIFER / DECIDUOUS CLASSIFICATION v2 — WITH RGB + STRUCTURAL FEATURES
+================================================================================
+
+  Training Data:    318,373 inventory-matched crowns
+  Train/Test:       254,698 / 63,675
+  Model:            Random Forest (300 trees, max_depth=20)
+  Features:         45 LiDAR features (RGB, intensity, structure, returns)
+
+  PERFORMANCE
+  -----------
+              precision    recall  f1-score   support
+
+   deciduous       0.95      0.93      0.94     48842
+     conifer       0.78      0.83      0.81     14833
+
+    accuracy                           0.91     63675
+   macro avg       0.87      0.88      0.87     63675
+weighted avg       0.91      0.91      0.91     63675
+
+
+  Cross-validation accuracy: 0.904 ± 0.020
+
+  Confusion Matrix:
+                 Pred Deciduous  Pred Conifer
+  Act Deciduous        45,423        3,419
+  Act Conifer           2,493       12,340
+
+  FEATURE IMPORTANCE (top 20):
+    pct_mid_lower             0.1639  ████████████████
+    pct_class4                0.1124  ███████████
+    pct_upper_quarter         0.1059  ██████████
+    pct_class3                0.0797  ███████
+    h_skew                    0.0735  ███████
+    h_p25                     0.0396  ███
+    h_kurtosis                0.0310  ███
+    g_ratio                   0.0280  ██
+    pct_class5                0.0188  █
+    rgb_range                 0.0169  █
+    perimeter_m               0.0165  █
+    b_ratio                   0.0160  █
+    crown_diameter_m          0.0146  █
+    crown_area_m2             0.0135  █
+    int_mean                  0.0128  █
+    h_median                  0.0126  █
+    h_cv                      0.0118  █
+    b_std                     0.0115  █
+    compactness               0.0114  █
+    pct_lower_quarter         0.0112  █
+
+  CITY-WIDE PREDICTIONS (3,922,940 crowns with features)
+  -------------------------------------------------------
+  Deciduous: 2,787,877 (71.1%)
+  Conifer:   1,135,063 (28.9%)
+
+  TREES (>5m):
+    Deciduous: 2,390,368 (70.0%)
+    Conifer:   1,024,246 (30.0%)
+
+  SHRUBS (2-5m):
+    Deciduous: 397,509 (78.2%)
+    Conifer:   110,817 (21.8%)
+
+  COMPARISON: v1 (shape only) → v2 (shape + RGB + structure)
+  -----------------------------------------------------------
+  v1 accuracy: 83.3%
+  v2 accuracy: 90.4%
+  Improvement: +7.1 percentage points
+
+================================================================================

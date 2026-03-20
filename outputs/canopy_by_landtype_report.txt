@@ -1,0 +1,49 @@
+
+================================================================================
+  EDMONTON CANOPY COVER BY LAND TYPE — 2025 LiDAR
+================================================================================
+
+  CITY-WIDE SUMMARY
+  -----------------
+  Total crowns detected:     5,168,142
+  Total canopy area:         21,469 ha
+
+  TREES (>5m height):
+    Total:                   4,317,130
+    Deciduous:               2,826,067 (65.5%)
+    Conifer:                 1,491,063 (34.5%)
+
+  SHRUBS (2-5m height):
+    Total:                   851,012
+    Deciduous:               681,817 (80.1%)
+    Conifer:                 169,195 (19.9%)
+
+  BY MANAGEMENT CONTEXT
+  ---------------------
+  Natural / Naturalized:     2,158,048 crowns  (7,565 ha)
+  Ornamental (planted):      3,010,094 crowns  (13,904 ha)
+
+  UPLVI ECOCLASS BREAKDOWN
+  ------------------------
+  Non vegetated          2,956,767 crowns    13,691 ha  (22% conifer)
+  Vegetated              2,124,537 crowns     7,471 ha  (46% conifer)
+
+  NATURALIZED AREA BREAKDOWN
+  --------------------------
+  Tree Stand                       628,245 crowns   2,273 ha  (54% conifer)
+  Grass with Trees or Shrubs        62,007 crowns     184 ha  (55% conifer)
+  Unmowed Grass                     24,124 crowns      62 ha  (48% conifer)
+  Riparian                          23,253 crowns      75 ha  (49% conifer)
+  Unknown                            1,450 crowns       3 ha  (56% conifer)
+  Bioswale                             478 crowns       1 ha  (51% conifer)
+  Wildflower Meadow                     45 crowns       0 ha  (58% conifer)
+
+  FIVE-CLASS VEGETATION SUMMARY (Challenger format)
+  --------------------------------------------------
+  Tree Deciduous:     2,826,067  (13,984 ha)
+  Tree Coniferous:    1,491,063  (5,553 ha)
+  Shrub Deciduous:      681,817  (1,254 ha)
+  Shrub Coniferous:     169,195  (678 ha)
+  Grass:             (from canopy cover analysis — non-canopy low vegetation)
+
+================================================================================

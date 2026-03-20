@@ -1,0 +1,31 @@
+# Data (stored on Google Drive)
+data/*.laz
+data/*.tif
+data/*.npz
+data/*.csv
+*.laz
+*.tif
+
+# Outputs (large CSVs)
+outputs/*.csv
+
+# Models
+models/*.joblib
+models/*.pkl
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Environment
+.env
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

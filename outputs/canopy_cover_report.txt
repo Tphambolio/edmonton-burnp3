@@ -1,0 +1,37 @@
+
+================================================================================
+  EDMONTON CANOPY COVER ANALYSIS — 2025 LiDAR
+================================================================================
+
+  Data Source:    2025 City of Edmonton LiDAR Data Collection
+  Collection:     Summer 2025, leaf-on condition
+  Point Density:  25 pts/m², 20 cm nominal spacing
+  CRS:            EPSG:3776 (NAD83 / Alberta 3TM ref merid 114 W)
+  Method:         Height-normalized vegetation rasterization (1m grid)
+  Canopy Def:     Vegetation points (classes 3/4/5) ≥ 2.0m above ground
+
+  Tiles Processed:  3,228
+
+  RESULTS
+  -------
+  City Land Area:       784.5 km²  (78,448 ha)
+  Total Canopy Area:    119.6 km²  (11,956 ha)
+
+  ┌──────────────────────────────────────────────┐
+  │  CANOPY COVER:  15.2%                        │
+  └──────────────────────────────────────────────┘
+
+  Height Class Breakdown:
+    Low canopy   (2–5 m):   11.8%   (9,290 ha)
+    Medium canopy (5–15 m):  11.1%   (8,705 ha)
+    High canopy  (>15 m):    1.9%   (1,522 ha)
+
+  Notes:
+  - Canopy cover = canopy cells / total boundary cells at 1.0m resolution
+  - Height classes may overlap spatially (a cell with both 4m and 12m points
+    counts in both low and medium), so height-class percentages may sum > total
+  - Boundary from OpenStreetMap (Nominatim), reprojected to EPSG:3776
+  - "Vegetation" = LAS classes 3 (Low), 4 (Medium), 5 (High) only
+    Class 1 (Unclassified) excluded to avoid counting buildings
+
+================================================================================
