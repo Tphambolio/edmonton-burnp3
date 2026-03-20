@@ -17,16 +17,17 @@
 
   FUEL TYPE DISTRIBUTION (within Edmonton boundary)
   --------------------------------------------------
-    C-2 ( 2):    45,363 cells     1,815 ha    2.3%
+    C-2 ( 2):    12,660 cells       506 ha    0.6%
     C-3 ( 3):         0 cells         0 ha    0.0%
-    D-2 (12):   153,860 cells     6,154 ha    7.8%
-    M-2 (14):    98,007 cells     3,920 ha    5.0%
-   O-1b (32):   596,979 cells    23,879 ha   30.4%
+    D-2 (12):    53,221 cells     2,129 ha    2.7%
+    M-2 (14):    43,639 cells     1,746 ha    2.2%
+   O-1a (31):   424,588 cells    16,984 ha   21.7%
+   O-1b (32):   191,091 cells     7,644 ha    9.7%
      WA (98):         0 cells         0 ha    0.0%
-     NF (99):  1,066,842 cells    42,674 ha   54.4%
+     NF (99):  1,235,852 cells    49,434 ha   63.0%
 
-  Total fuel cells:     894,209 (35,768 ha)
-  Non-fuel (NF) cells:  1,066,842 (42,674 ha)
+  Total fuel cells:     725,199 (29,008 ha)
+  Non-fuel (NF) cells:  1,235,852 (49,434 ha)
 
   CLASSIFICATION RULES
   --------------------

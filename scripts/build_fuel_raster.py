@@ -73,7 +73,8 @@ FBP = {
     "C-3": 3,    # Mature Jack/Lodgepole Pine
     "D-2": 12,   # Green Aspen
     "M-2": 14,   # Boreal Mixedwood Green
-    "O-1b": 32,  # Standing Grass
+    "O-1a": 31,  # Matted Grass (crops, tame pasture)
+    "O-1b": 32,  # Standing Grass (natural)
     "NF": 99,    # Non-fuel
     "WA": 98,    # Water
 }
@@ -119,13 +120,21 @@ def load_trees():
     return df
 
 
-def load_natural_areas():
-    """Load and merge UPLVI vegetated + naturalized area polygons."""
-    log.info("Loading natural area polygons...")
+def load_land_classes():
+    """Load UPLVI and naturalized areas with fuel-relevant land class labels."""
+    log.info("Loading land class polygons...")
 
-    # UPLVI vegetated areas
     with open(UPLVI_JSON) as f:
         uplvi_raw = json.load(f)
+
+    # Map UPLVI subtypes to fuel context
+    NON_FUEL_SUBTYPES = {
+        "Maintained Grass", "Farmyard/Acreage", "Acreage Subdivision",
+        "Nursery/Tree farm", "Transplant Trees", "Recent Clearing",
+    }
+    CROP_SUBTYPES = {"Annual Crops", "Agriculture Hygric Tillage"}
+    PASTURE_SUBTYPES = {"Tame Pasture", "Rough Pasture"}
+    SHELTERBELT_SUBTYPES = {"Treed Shelterbelt"}
 
     uplvi_feats = []
     for r in uplvi_raw:
@@ -134,15 +143,49 @@ def load_natural_areas():
         geom = r.get("the_geom")
         if not geom:
             continue
+
+        stype = r.get("stype1", "")
+        landclas = r.get("landclas1", "")
+
+        # Assign fuel context
+        if stype in NON_FUEL_SUBTYPES:
+            fuel_context = "non_fuel"
+        elif stype in CROP_SUBTYPES:
+            fuel_context = "crop"      # O-1a (matted/stubble)
+        elif stype in PASTURE_SUBTYPES:
+            fuel_context = "pasture"   # O-1a (tame) or O-1b (rough)
+        elif stype in SHELTERBELT_SUBTYPES:
+            fuel_context = "shelterbelt"  # linear trees — use forest classification
+        elif landclas == "Naturally Wooded":
+            fuel_context = "forest"
+        elif landclas == "Naturally Non-wooded":
+            fuel_context = "natural_grass"  # O-1b
+        elif landclas == "Wetland":
+            fuel_context = "wetland"
+        elif stype == "Non maintained Grass/Shrubs":
+            fuel_context = "natural_grass"
+        else:
+            fuel_context = "natural_grass"  # conservative default
+
         try:
-            uplvi_feats.append({"geometry": shape(geom), "source": "UPLVI", "type": "Vegetated"})
+            uplvi_feats.append({
+                "geometry": shape(geom),
+                "fuel_context": fuel_context,
+                "stype": stype,
+                "landclas": landclas,
+            })
         except Exception:
             continue
 
     uplvi_gdf = gpd.GeoDataFrame(uplvi_feats, crs="EPSG:4326").to_crs(CRS)
-    log.info(f"  UPLVI vegetated: {len(uplvi_gdf)} polygons")
 
-    # Naturalized areas
+    from collections import Counter
+    ctx_counts = Counter(uplvi_gdf["fuel_context"])
+    log.info(f"  UPLVI fuel contexts:")
+    for ctx, n in ctx_counts.most_common():
+        log.info(f"    {ctx}: {n}")
+
+    # Naturalized areas — all are natural fuel
     with open(NAT_JSON) as f:
         nat_raw = json.load(f)
 
@@ -151,11 +194,21 @@ def load_natural_areas():
         geom = r.get("geometry_multipolygon")
         if not geom:
             continue
+        vtype = r.get("vegetation_type", "Unknown")
+        if vtype in ("Tree Stand",):
+            fuel_context = "forest"
+        elif vtype == "Riparian":
+            fuel_context = "forest"
+        elif vtype == "Bioswale":
+            fuel_context = "non_fuel"
+        else:
+            fuel_context = "natural_grass"
         try:
             nat_feats.append({
                 "geometry": shape(geom),
-                "source": "Naturalized",
-                "type": r.get("vegetation_type", "Unknown"),
+                "fuel_context": fuel_context,
+                "stype": vtype,
+                "landclas": "Naturalized",
             })
         except Exception:
             continue
@@ -163,15 +216,10 @@ def load_natural_areas():
     nat_gdf = gpd.GeoDataFrame(nat_feats, crs="EPSG:4326").to_crs(CRS)
     log.info(f"  Naturalized: {len(nat_gdf)} polygons")
 
-    # Merge
     combined = pd.concat([uplvi_gdf, nat_gdf], ignore_index=True)
     combined = gpd.GeoDataFrame(combined, crs=CRS)
 
-    # Dissolve to single multipolygon for rasterization
-    natural_union = combined.dissolve().geometry.iloc[0]
-    log.info(f"  Combined natural area: {natural_union.area / 1e6:.1f} km²")
-
-    return combined, natural_union
+    return combined
 
 
 def load_boundary():
@@ -184,7 +232,7 @@ def load_boundary():
 # ---------------------------------------------------------------------------
 # Build fuel raster
 # ---------------------------------------------------------------------------
-def build_fuel_rasters(trees_df, natural_gdf, natural_union, boundary):
+def build_fuel_rasters(trees_df, land_gdf, boundary):
     """Build fuel type and percent conifer rasters."""
     log.info("Building fuel rasters...")
 
@@ -205,18 +253,47 @@ def build_fuel_rasters(trees_df, natural_gdf, natural_union, boundary):
     fuel = np.full((ny, nx), FBP["NF"], dtype=np.int16)
     pc = np.zeros((ny, nx), dtype=np.int16)
 
-    # Step 1: Rasterize natural area mask
-    log.info("  Rasterizing natural area mask...")
-    natural_mask = rasterize(
-        [(mapping(natural_union), 1)],
-        out_shape=(ny, nx),
-        transform=transform,
-        fill=0,
-        dtype=np.uint8,
-    ).astype(bool)
+    # Step 1: Rasterize fuel context layers separately
+    log.info("  Rasterizing land class masks...")
 
-    natural_cells = natural_mask.sum()
-    log.info(f"  Natural area cells: {natural_cells:,} ({100*natural_cells/(nx*ny):.1f}%)")
+    # Fuel context codes for rasterization
+    CONTEXT_CODES = {
+        "forest": 1,
+        "natural_grass": 2,
+        "crop": 3,
+        "pasture": 4,
+        "shelterbelt": 5,
+        "wetland": 6,
+        "non_fuel": 7,
+    }
+
+    context_raster = np.zeros((ny, nx), dtype=np.uint8)
+    for ctx, code in CONTEXT_CODES.items():
+        ctx_gdf = land_gdf[land_gdf["fuel_context"] == ctx]
+        if len(ctx_gdf) == 0:
+            continue
+        shapes = [(mapping(g), code) for g in ctx_gdf.geometry if g is not None and not g.is_empty]
+        if shapes:
+            layer = rasterize(shapes, out_shape=(ny, nx), transform=transform, fill=0, dtype=np.uint8)
+            # Higher priority contexts overwrite lower
+            context_raster = np.where(layer > 0, layer, context_raster)
+
+    for ctx, code in CONTEXT_CODES.items():
+        count = (context_raster == code).sum()
+        if count > 0:
+            log.info(f"    {ctx}: {count:,} cells ({count * CELL_SIZE * CELL_SIZE / 1e4:,.0f} ha)")
+
+    # Masks by context
+    forest_mask = context_raster == CONTEXT_CODES["forest"]
+    grass_mask = context_raster == CONTEXT_CODES["natural_grass"]
+    crop_mask = context_raster == CONTEXT_CODES["crop"]
+    pasture_mask = context_raster == CONTEXT_CODES["pasture"]
+    shelterbelt_mask = context_raster == CONTEXT_CODES["shelterbelt"]
+    wetland_mask = context_raster == CONTEXT_CODES["wetland"]
+    nonfuel_mask = context_raster == CONTEXT_CODES["non_fuel"]
+
+    # Any natural/fuel area (for tree aggregation)
+    fuel_area_mask = forest_mask | grass_mask | crop_mask | pasture_mask | shelterbelt_mask | wetland_mask
 
     # Step 2: Assign trees to grid cells
     log.info("  Assigning trees to grid cells...")
@@ -253,28 +330,46 @@ def build_fuel_rasters(trees_df, natural_gdf, natural_union, boundary):
     total_trees = conifer_count + deciduous_count
     conifer_frac = np.where(total_trees > 0, conifer_count / total_trees, 0).astype(np.float32)
 
-    # Step 4: Classify fuel types within natural areas
+    # Step 4: Classify fuel types by land context
     log.info("  Classifying fuel types...")
 
-    # Natural areas with enough trees → forest fuel types
-    forested = natural_mask & (tree_count >= MIN_TREES_PER_CELL)
+    # --- Forest areas (UPLVI Naturally Wooded + naturalized Tree Stand/Riparian + shelterbelts) ---
+    forested = (forest_mask | shelterbelt_mask) & (tree_count >= MIN_TREES_PER_CELL)
 
-    # Conifer-dominant
+    # Conifer-dominant → C-2 (Boreal Spruce)
     c_dominant = forested & (conifer_frac >= CONIFER_DOMINANT)
-    # For Edmonton: spruce is the dominant conifer, so C-2
     fuel[c_dominant] = FBP["C-2"]
 
-    # Deciduous-dominant
+    # Deciduous-dominant → D-2 (Green Aspen)
     d_dominant = forested & (conifer_frac <= (1 - DECIDUOUS_DOMINANT))
     fuel[d_dominant] = FBP["D-2"]
 
-    # Mixedwood (neither fully conifer nor fully deciduous)
+    # Mixedwood → M-2 (Boreal Mixedwood Green)
     mixedwood = forested & ~c_dominant & ~d_dominant
     fuel[mixedwood] = FBP["M-2"]
 
-    # Natural areas with few/no trees → grass
-    grass = natural_mask & (tree_count < MIN_TREES_PER_CELL)
-    fuel[grass] = FBP["O-1b"]
+    # Forest areas with sparse trees → O-1b (gaps/clearings)
+    forest_sparse = (forest_mask | shelterbelt_mask) & (tree_count < MIN_TREES_PER_CELL)
+    fuel[forest_sparse] = FBP["O-1b"]
+
+    # --- Natural grass (UPLVI Naturally Non-wooded, non-maintained grass) ---
+    fuel[grass_mask] = FBP["O-1b"]  # Standing grass
+
+    # --- Agricultural crops → O-1a (matted/stubble) ---
+    fuel[crop_mask] = FBP["O-1a"]
+
+    # --- Pasture ---
+    fuel[pasture_mask] = FBP["O-1a"]  # Tame/rough pasture — closer to O-1a than O-1b
+
+    # --- Wetland → O-1b (conservative; could be NF if standing water) ---
+    # Wetlands with trees get forest classification, without get grass
+    wetland_treed = wetland_mask & (tree_count >= MIN_TREES_PER_CELL)
+    wetland_open = wetland_mask & (tree_count < MIN_TREES_PER_CELL)
+    fuel[wetland_treed] = FBP["D-2"]  # Treed wetlands mostly deciduous
+    fuel[wetland_open] = FBP["O-1b"]
+
+    # --- Explicitly non-fuel (maintained grass, farmyards, acreages) ---
+    fuel[nonfuel_mask] = FBP["NF"]
 
     # Percent conifer (0-100) for M-2 cells
     pc = (conifer_frac * 100).astype(np.int16)
@@ -341,11 +436,11 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     trees_df = load_trees()
-    natural_gdf, natural_union = load_natural_areas()
+    land_gdf = load_land_classes()
     boundary = load_boundary()
 
     fuel, pc, transform, nx, ny, fuel_counts, total_cells = build_fuel_rasters(
-        trees_df, natural_gdf, natural_union, boundary
+        trees_df, land_gdf, boundary
     )
 
     log.info("Writing rasters...")
