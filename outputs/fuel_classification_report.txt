@@ -1,0 +1,50 @@
+
+================================================================================
+  EDMONTON FBP FUEL TYPE CLASSIFICATION — BurnP3 Input
+================================================================================
+
+  Source Data:     2025 City of Edmonton Vegetation LiDAR
+  Classifier:     Conifer/deciduous RF v2 (90.4% accuracy)
+  Natural Areas:  UPLVI vegetated + Naturalized Areas (Edmonton Open Data)
+  Cell Size:       20m x 20m
+  CRS:             EPSG:3776 (NAD83 / Alberta 3TM ref merid 114 W)
+  Grid Size:       1461 x 2115 cells
+
+  OUTPUT FILES
+  ------------
+  Fuel type raster:     /home/rpas/Documents/City-of-Edmonton/Urban-Forestry/LiDAR/fuel_raster/fuel_type.tif
+  Percent conifer:      /home/rpas/Documents/City-of-Edmonton/Urban-Forestry/LiDAR/fuel_raster/percent_conifer.tif
+
+  FUEL TYPE DISTRIBUTION (within Edmonton boundary)
+  --------------------------------------------------
+    C-2 ( 2):    45,363 cells     1,815 ha    2.3%
+    C-3 ( 3):         0 cells         0 ha    0.0%
+    D-2 (12):   153,860 cells     6,154 ha    7.8%
+    M-2 (14):    98,007 cells     3,920 ha    5.0%
+   O-1b (32):   596,979 cells    23,879 ha   30.4%
+     WA (98):         0 cells         0 ha    0.0%
+     NF (99):  1,066,842 cells    42,674 ha   54.4%
+
+  Total fuel cells:     894,209 (35,768 ha)
+  Non-fuel (NF) cells:  1,066,842 (42,674 ha)
+
+  CLASSIFICATION RULES
+  --------------------
+  Within UPLVI Vegetated + Naturalized Area polygons:
+    >=75% conifer trees      → C-2 (Boreal Spruce)
+    >=75% deciduous trees   → D-2 (Green Aspen)
+    25-75% conifer            → M-2 (Boreal Mixedwood Green) + PC%
+    <2 trees per cell       → O-1b (Standing Grass)
+  Outside natural areas:
+    All cells                 → NF (Non-fuel)
+
+  NOTES
+  -----
+  - Leaf-on collection: D-2 and M-2 (green variants) used throughout
+  - For leaf-off modeling, substitute D-1 for D-2 and M-1 for M-2
+  - Percent conifer raster provided for M-2 cells (BurnP3 PC input)
+  - Spruce is Edmonton's dominant conifer; C-2 used over C-3
+  - Grass classification based on UPLVI/naturalized boundaries, not spectral
+  - Urban canopy trees outside natural areas classified as NF (not fuel)
+
+================================================================================
