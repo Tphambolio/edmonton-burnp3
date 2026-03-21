@@ -278,9 +278,9 @@
     osmLight.addTo(map);
 
     // Overlay layers — XYZ tiles with nearest-neighbor rendering
-    const tileOpts = { tms: false, opacity: 1.0, maxZoom: 16, minZoom: 9, bounds: bounds };
+    const tileOpts = { tms: false, opacity: 0.75, maxNativeZoom: 16, maxZoom: 19, minZoom: 9, bounds: bounds };
 
-    const fuelType = L.tileLayer('tiles/fuel_type/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { opacity: 0.55 }));
+    const fuelType = L.tileLayer('tiles/fuel_type/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { opacity: 0.45 }));
     const burnHFWI = L.tileLayer('tiles/burn_hfwi/{z}/{x}/{y}.png', tileOpts);
     const burnStandard = L.tileLayer('tiles/burn_standard/{z}/{x}/{y}.png', tileOpts);
 
