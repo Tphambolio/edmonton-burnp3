@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edmonton Urban Wildfire Risk — Canopy Analysis &amp; Burn Probability</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1419; color: #e7e9ea; }
+
+        #map { width: 100%; height: 70vh; min-height: 500px; }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 2rem;
+            border-bottom: 3px solid #e94560;
+        }
+        .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .header .subtitle { color: #a0a0b0; font-size: 0.95rem; }
+
+        .content { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: #1a1f2e;
+            border: 1px solid #2a3040;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        .card h3 { color: #e94560; font-size: 1.1rem; margin-bottom: 0.8rem; border-bottom: 1px solid #2a3040; padding-bottom: 0.5rem; }
+        .card table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .card th { text-align: left; color: #8899aa; padding: 0.3rem 0; font-weight: 500; }
+        .card td { padding: 0.3rem 0; }
+        .card td.num { text-align: right; font-family: 'SF Mono', monospace; }
+        .card p { font-size: 0.9rem; line-height: 1.6; color: #b0b8c4; margin-bottom: 0.5rem; }
+        .card code { background: #252d3a; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.82rem; color: #7dd3fc; }
+        .card ul { padding-left: 1.2rem; font-size: 0.88rem; line-height: 1.8; color: #b0b8c4; }
+
+        .fuel-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+        .fuel-swatch { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+
+        .section-title { font-size: 1.3rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 0.5rem; color: #e7e9ea; }
+        .section-desc { color: #8899aa; font-size: 0.9rem; margin-bottom: 1rem; }
+
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0; }
+        @media (max-width: 768px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box { background: #1a1f2e; border: 1px solid #2a3040; border-radius: 8px; padding: 1rem; text-align: center; }
+        .stat-box .value { font-size: 1.6rem; font-weight: 700; color: #e94560; }
+        .stat-box .label { font-size: 0.75rem; color: #8899aa; margin-top: 0.3rem; }
+
+        .legend-control {
+            background: rgba(15, 20, 25, 0.92);
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 12px;
+            color: #e7e9ea;
+            font-size: 12px;
+            line-height: 1.6;
+            min-width: 160px;
+        }
+        .legend-control h4 { margin-bottom: 6px; font-size: 13px; color: #e94560; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 2px; }
+
+        .layer-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 3px 0; }
+        .layer-toggle input { cursor: pointer; }
+
+        footer { text-align: center; padding: 2rem; color: #555; font-size: 0.8rem; border-top: 1px solid #1a1f2e; }
+        footer a { color: #e94560; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Edmonton Urban Wildfire Risk Assessment</h1>
+    <div class="subtitle">FBP Fuel Type Classification &amp; BurnP3 Burn Probability Analysis — City of Edmonton, Alberta</div>
+</div>
+
+<div id="map"></div>
+
+<div class="content">
+
+    <div class="stat-grid">
+        <div class="stat-box">
+            <div class="value">29,008 ha</div>
+            <div class="label">Total Fuel Area</div>
+        </div>
+        <div class="stat-box">
+            <div class="value">500</div>
+            <div class="label">Monte Carlo Iterations</div>
+        </div>
+        <div class="stat-box">
+            <div class="value">2,499</div>
+            <div class="label">Simulated Fire Ignitions</div>
+        </div>
+        <div class="stat-box">
+            <div class="value">95.5 ha</div>
+            <div class="label">Largest Simulated Fire</div>
+        </div>
+    </div>
+
+    <div class="section-title">Fuel Type Classification</div>
+    <div class="section-desc">CFFDRS FBP System fuel types derived from 2025 City of Edmonton vegetation LiDAR</div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Classification Method</h3>
+            <p>Individual tree crowns were classified as conifer or deciduous using a Random Forest classifier (v2) trained on the 2025 leaf-on LiDAR collection, achieving <strong>90.4% accuracy</strong>.</p>
+            <p>Fuel types were assigned within UPLVI Vegetated and Naturalized Area polygons (Edmonton Open Data) at <code>20m &times; 20m</code> resolution in <code>EPSG:3776</code> (NAD83 / Alberta 3TM 114W).</p>
+            <ul>
+                <li>&ge;75% conifer trees &rarr; <strong>C-2</strong> (Boreal Spruce)</li>
+                <li>&ge;75% deciduous trees &rarr; <strong>D-2</strong> (Green Aspen)</li>
+                <li>25&ndash;75% conifer &rarr; <strong>M-2</strong> (Boreal Mixedwood Green) + PC%</li>
+                <li>&lt;2 trees per cell &rarr; <strong>O-1b</strong> (Standing Grass)</li>
+                <li>Outside natural areas &rarr; <strong>NF</strong> (Non-fuel)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Fuel Type Distribution</h3>
+            <table>
+                <tr><th>Type</th><th>Code</th><th style="text-align:right">Area (ha)</th><th style="text-align:right">%</th></tr>
+                <tr><td><span class="fuel-swatch" style="background:#006400;display:inline-block;vertical-align:middle"></span> C-2 Boreal Spruce</td><td>2</td><td class="num">506</td><td class="num">0.6%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#228b22;display:inline-block;vertical-align:middle"></span> D-2 Green Aspen</td><td>12</td><td class="num">2,129</td><td class="num">2.7%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#6b8e23;display:inline-block;vertical-align:middle"></span> M-2 Boreal Mixedwood</td><td>14</td><td class="num">1,746</td><td class="num">2.2%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#d2b450;display:inline-block;vertical-align:middle"></span> O-1a Matted Grass</td><td>31</td><td class="num">16,984</td><td class="num">21.7%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#f0dc64;display:inline-block;vertical-align:middle"></span> O-1b Standing Grass</td><td>32</td><td class="num">7,644</td><td class="num">9.7%</td></tr>
+                <tr><td style="color:#666">NF Non-fuel</td><td>99</td><td class="num">49,434</td><td class="num">63.0%</td></tr>
+            </table>
+            <p style="margin-top:0.8rem">Grid: <code>1461 &times; 2115</code> cells &bull; Total fuel: <strong>29,008 ha</strong></p>
+        </div>
+    </div>
+
+    <div class="section-title">Burn Probability Simulation</div>
+    <div class="section-desc">Monte Carlo fire simulation using Head Fire Weather Index (HFWI) conditions</div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Simulation Parameters</h3>
+            <p>Fire ignitions were simulated across the Edmonton fuel grid using the BurnP3 framework with <strong>500 iterations</strong> and randomized ignition locations weighted by fuel availability.</p>
+            <table>
+                <tr><th>Parameter</th><th style="text-align:right">Value</th></tr>
+                <tr><td>Iterations</td><td class="num">500</td></tr>
+                <tr><td>Total ignitions</td><td class="num">2,499</td></tr>
+                <tr><td>Fires with spread</td><td class="num">939 (37.6%)</td></tr>
+                <tr><td>Total area burned</td><td class="num">1,594.2 ha</td></tr>
+                <tr><td>Mean fire size</td><td class="num">1.70 ha</td></tr>
+                <tr><td>Max fire size</td><td class="num">95.5 ha</td></tr>
+                <tr><td>Mean fire duration</td><td class="num">4.0 timesteps</td></tr>
+                <tr><td>Mean hours burning</td><td class="num">48.3 hrs</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h3>Fire Spread by Fuel Type</h3>
+            <p>Of the 939 fires that achieved measurable spread:</p>
+            <table>
+                <tr><th>Fuel Type</th><th style="text-align:right">Fires</th><th style="text-align:right">%</th></tr>
+                <tr><td>Standing Grass (O-1b)</td><td class="num">586</td><td class="num">62.4%</td></tr>
+                <tr><td>Matted Grass (O-1a)</td><td class="num">234</td><td class="num">24.9%</td></tr>
+                <tr><td>Green Aspen (D-2)</td><td class="num">65</td><td class="num">6.9%</td></tr>
+                <tr><td>Boreal Mixedwood (M-2)</td><td class="num">43</td><td class="num">4.6%</td></tr>
+                <tr><td>Boreal Spruce (C-2)</td><td class="num">11</td><td class="num">1.2%</td></tr>
+            </table>
+            <p style="margin-top:0.8rem">Grass fuels dominate fire spread (87.3%), but the highest-intensity fires occur in conifer and mixedwood stands along the river valley.</p>
+        </div>
+    </div>
+
+    <div class="section-title">Technical Notes</div>
+    <div class="grid">
+        <div class="card">
+            <h3>Data Sources</h3>
+            <ul>
+                <li><strong>LiDAR:</strong> 2025 City of Edmonton Vegetation LiDAR (leaf-on)</li>
+                <li><strong>Natural Areas:</strong> UPLVI Vegetated + Naturalized Areas (Edmonton Open Data)</li>
+                <li><strong>Classifier:</strong> Random Forest v2 conifer/deciduous (90.4% accuracy)</li>
+                <li><strong>Fire Model:</strong> CFFDRS FBP System / BurnP3 framework</li>
+                <li><strong>CRS:</strong> EPSG:3776 (NAD83 / Alberta 3TM ref merid 114 W)</li>
+                <li><strong>Resolution:</strong> 20m &times; 20m grid cells</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Assumptions &amp; Limitations</h3>
+            <ul>
+                <li>Leaf-on collection: D-2 and M-2 (green variants) used; for leaf-off modeling, substitute D-1/M-1</li>
+                <li>Spruce is Edmonton's dominant conifer; C-2 used over C-3</li>
+                <li>Grass classification based on UPLVI/naturalized boundaries, not spectral analysis</li>
+                <li>Urban canopy trees outside designated natural areas classified as NF (non-fuel)</li>
+                <li>Percent conifer raster provided for M-2 cells (BurnP3 PC input)</li>
+                <li>Two scenarios shown: High HFI (summer peak) and Standard conditions</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<footer>
+    Edmonton Urban Wildfire Risk Assessment &mdash; City of Edmonton, Urban Forestry &amp; Ecology
+    <br>Built with <a href="https://leafletjs.com">Leaflet</a> &bull; Data: CFFDRS/FBP &bull; Analysis: 2025
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const bounds = [[53.337616, -113.715640], [53.715839, -113.270462]];
+    const center = [53.526728, -113.493051];
+
+    const map = L.map('map', {
+        center: center,
+        zoom: 11,
+        zoomControl: true
+    });
+
+    // Basemaps
+    const osmLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+    });
+
+    const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    });
+
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri',
+        maxZoom: 19
+    });
+
+    osmLight.addTo(map);
+
+    // Overlay layers
+    const fuelType = L.imageOverlay('img/fuel_type_web.png', bounds, { opacity: 0.55 });
+    const burnHFWI = L.imageOverlay('img/burn_hfwi_web.png', bounds, { opacity: 0.9 });
+    const burnStandard = L.imageOverlay('img/burn_standard_web.png', bounds, { opacity: 0.9 });
+
+    fuelType.addTo(map);
+    burnHFWI.addTo(map);
+
+    // Layer control
+    const baseMaps = {
+        "Light": osmLight,
+        "Streets": osmStandard,
+        "Satellite": satellite
+    };
+
+    const overlays = {
+        "Burn Probability — High HFI Summer": burnHFWI,
+        "Burn Probability — Standard": burnStandard,
+        "FBP Fuel Type Classification": fuelType
+    };
+
+    L.control.layers(baseMaps, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+
+    // Legend
+    const legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'legend-control');
+        div.innerHTML = `
+            <h4>Fuel Types (CFFDRS)</h4>
+            <div class="legend-item"><div class="legend-color" style="background:#006400"></div> C-2 Boreal Spruce</div>
+            <div class="legend-item"><div class="legend-color" style="background:#228b22"></div> D-2 Green Aspen</div>
+            <div class="legend-item"><div class="legend-color" style="background:#6b8e23"></div> M-2 Boreal Mixedwood</div>
+            <div class="legend-item"><div class="legend-color" style="background:#d2b450"></div> O-1a Matted Grass</div>
+            <div class="legend-item"><div class="legend-color" style="background:#f0dc64"></div> O-1b Standing Grass</div>
+            <h4 style="margin-top:8px">Burn Probability</h4>
+            <div class="legend-item"><div class="legend-color" style="background:#ffff00"></div> Low</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff8c00"></div> Moderate</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff0000"></div> High</div>
+        `;
+        return div;
+    };
+    legend.addTo(map);
+
+    map.fitBounds(bounds);
+</script>
+
+</body>
+</html>
