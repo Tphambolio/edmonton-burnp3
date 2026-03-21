@@ -122,11 +122,11 @@
             <h3>Fuel Type Distribution</h3>
             <table>
                 <tr><th>Type</th><th>Code</th><th style="text-align:right">Area (ha)</th><th style="text-align:right">%</th></tr>
-                <tr><td><span class="fuel-swatch" style="background:#006400;display:inline-block;vertical-align:middle"></span> C-2 Boreal Spruce</td><td>2</td><td class="num">506</td><td class="num">0.6%</td></tr>
-                <tr><td><span class="fuel-swatch" style="background:#228b22;display:inline-block;vertical-align:middle"></span> D-2 Green Aspen</td><td>12</td><td class="num">2,129</td><td class="num">2.7%</td></tr>
-                <tr><td><span class="fuel-swatch" style="background:#6b8e23;display:inline-block;vertical-align:middle"></span> M-2 Boreal Mixedwood</td><td>14</td><td class="num">1,746</td><td class="num">2.2%</td></tr>
-                <tr><td><span class="fuel-swatch" style="background:#d2b450;display:inline-block;vertical-align:middle"></span> O-1a Matted Grass</td><td>31</td><td class="num">16,984</td><td class="num">21.7%</td></tr>
-                <tr><td><span class="fuel-swatch" style="background:#f0dc64;display:inline-block;vertical-align:middle"></span> O-1b Standing Grass</td><td>32</td><td class="num">7,644</td><td class="num">9.7%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#005014;display:inline-block;vertical-align:middle"></span> C-2 Boreal Spruce</td><td>2</td><td class="num">506</td><td class="num">0.6%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#32b432;display:inline-block;vertical-align:middle"></span> D-2 Green Aspen</td><td>12</td><td class="num">2,129</td><td class="num">2.7%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#50a028;display:inline-block;vertical-align:middle"></span> M-2 Boreal Mixedwood</td><td>14</td><td class="num">1,746</td><td class="num">2.2%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#b4d250;display:inline-block;vertical-align:middle"></span> O-1a Matted Grass</td><td>31</td><td class="num">16,984</td><td class="num">21.7%</td></tr>
+                <tr><td><span class="fuel-swatch" style="background:#d2f06e;display:inline-block;vertical-align:middle"></span> O-1b Standing Grass</td><td>32</td><td class="num">7,644</td><td class="num">9.7%</td></tr>
                 <tr><td style="color:#666">NF Non-fuel</td><td>99</td><td class="num">49,434</td><td class="num">63.0%</td></tr>
             </table>
             <p style="margin-top:0.8rem">Grid: <code>1461 &times; 2115</code> cells &bull; Total fuel: <strong>29,008 ha</strong></p>
@@ -134,11 +134,29 @@
     </div>
 
     <div class="section-title">Burn Probability Simulation</div>
-    <div class="section-desc">Monte Carlo fire simulation using Head Fire Weather Index (HFWI) conditions</div>
+    <div class="section-desc">Monte Carlo fire simulation comparing two fire weather scenarios</div>
 
     <div class="grid">
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>Two Scenarios: Standard vs. High HFI</h3>
+            <p>Two fire weather scenarios were modelled to bracket the range of wildfire risk across Edmonton's natural areas:</p>
+            <table>
+                <tr><th>Scenario</th><th>Description</th><th>Fire Weather Conditions</th></tr>
+                <tr>
+                    <td><strong>Standard</strong></td>
+                    <td>Represents typical summer fire weather using mean seasonal FWI values. Most ignitions self-extinguish or remain small. Provides a baseline probability of fire occurrence under normal conditions.</td>
+                    <td>Mean seasonal FFMC, ISI, and BUI values from Edmonton-area weather stations</td>
+                </tr>
+                <tr>
+                    <td><strong>High HFI Summer</strong></td>
+                    <td>Represents peak fire danger using elevated Head Fire Intensity conditions (90th+ percentile fire weather). Fires spread rapidly through grass and into forest fuels along the river valley, producing the yellow/orange/red corridors visible on the map.</td>
+                    <td>90th percentile+ FFMC, ISI, and BUI values reflecting drought and high-wind conditions</td>
+                </tr>
+            </table>
+            <p style="margin-top:0.8rem">Toggle between scenarios using the layer control on the map. The contrast between them illustrates how sensitive Edmonton's urban-wildland interface is to fire weather escalation.</p>
+        </div>
         <div class="card">
-            <h3>Simulation Parameters</h3>
+            <h3>Simulation Parameters (High HFI)</h3>
             <p>Fire ignitions were simulated across the Edmonton fuel grid using the BurnP3 framework with <strong>500 iterations</strong> and randomized ignition locations weighted by fuel availability.</p>
             <table>
                 <tr><th>Parameter</th><th style="text-align:right">Value</th></tr>
@@ -257,11 +275,11 @@
         const div = L.DomUtil.create('div', 'legend-control');
         div.innerHTML = `
             <h4>Fuel Types (CFFDRS)</h4>
-            <div class="legend-item"><div class="legend-color" style="background:#006400"></div> C-2 Boreal Spruce</div>
-            <div class="legend-item"><div class="legend-color" style="background:#228b22"></div> D-2 Green Aspen</div>
-            <div class="legend-item"><div class="legend-color" style="background:#6b8e23"></div> M-2 Boreal Mixedwood</div>
-            <div class="legend-item"><div class="legend-color" style="background:#d2b450"></div> O-1a Matted Grass</div>
-            <div class="legend-item"><div class="legend-color" style="background:#f0dc64"></div> O-1b Standing Grass</div>
+            <div class="legend-item"><div class="legend-color" style="background:#005014"></div> C-2 Boreal Spruce</div>
+            <div class="legend-item"><div class="legend-color" style="background:#32b432"></div> D-2 Green Aspen</div>
+            <div class="legend-item"><div class="legend-color" style="background:#50a028"></div> M-2 Boreal Mixedwood</div>
+            <div class="legend-item"><div class="legend-color" style="background:#b4d250"></div> O-1a Matted Grass</div>
+            <div class="legend-item"><div class="legend-color" style="background:#d2f06e"></div> O-1b Standing Grass</div>
             <h4 style="margin-top:8px">Burn Probability</h4>
             <div class="legend-item"><div class="legend-color" style="background:#ffff00"></div> Low</div>
             <div class="legend-item"><div class="legend-color" style="background:#ff8c00"></div> Moderate</div>
