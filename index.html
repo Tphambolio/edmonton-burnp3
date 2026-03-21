@@ -11,6 +11,8 @@
 
         #map { width: 100%; height: 70vh; min-height: 500px; }
         .leaflet-tile { image-rendering: pixelated; image-rendering: crisp-edges; }
+        .leaflet-fuel-pane { z-index: 300 !important; }
+        .leaflet-burn-pane { z-index: 500 !important; }
 
         .header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -260,8 +262,13 @@
     });
 
     // Custom panes with explicit z-order so burn always renders above fuel
-    map.createPane('fuelPane').style.zIndex = 300;
-    map.createPane('burnPane').style.zIndex = 400;
+    const fuelPane = map.createPane('fuelPane');
+    fuelPane.style.zIndex = 300;
+    fuelPane.classList.add('leaflet-fuel-pane');
+
+    const burnPane = map.createPane('burnPane');
+    burnPane.style.zIndex = 500;
+    burnPane.classList.add('leaflet-burn-pane');
 
     // Basemaps
     const osmLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
