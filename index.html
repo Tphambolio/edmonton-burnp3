@@ -10,6 +10,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1419; color: #e7e9ea; }
 
         #map { width: 100%; height: 70vh; min-height: 500px; }
+        .burn-overlay { image-rendering: pixelated; }
 
         .header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -247,9 +248,9 @@
     osmLight.addTo(map);
 
     // Overlay layers
-    const fuelType = L.imageOverlay('img/fuel_type_web.png', bounds, { opacity: 0.55 });
-    const burnHFWI = L.imageOverlay('img/burn_hfwi_web.png', bounds, { opacity: 0.9 });
-    const burnStandard = L.imageOverlay('img/burn_standard_web.png', bounds, { opacity: 0.9 });
+    const fuelType = L.imageOverlay('img/fuel_type_web.png', bounds, { opacity: 0.55, zIndex: 100 });
+    const burnHFWI = L.imageOverlay('img/burn_hfwi_web.png', bounds, { opacity: 1.0, zIndex: 200, className: 'burn-overlay' });
+    const burnStandard = L.imageOverlay('img/burn_standard_web.png', bounds, { opacity: 1.0, zIndex: 200, className: 'burn-overlay' });
 
     fuelType.addTo(map);
     burnHFWI.addTo(map);
@@ -288,6 +289,13 @@
         return div;
     };
     legend.addTo(map);
+
+    // Ensure burn layers always render on top when toggled
+    map.on('overlayadd', function(e) {
+        if (e.name.includes('Burn')) {
+            e.layer.bringToFront();
+        }
+    });
 
     map.fitBounds(bounds);
 </script>
