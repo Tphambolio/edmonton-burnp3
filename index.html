@@ -290,10 +290,13 @@
 
     fuelType.addTo(map);
     burnHFWI.addTo(map);
-
-    // Force burn layer to front after all tiles load
-    burnHFWI.on('load', function() { burnHFWI.bringToFront(); });
     burnHFWI.bringToFront();
+
+    // Keep hammering the z-order until tiles settle
+    setTimeout(function() { burnHFWI.bringToFront(); }, 500);
+    setTimeout(function() { burnHFWI.bringToFront(); }, 1500);
+    setTimeout(function() { burnHFWI.bringToFront(); }, 3000);
+    map.on('moveend zoomend', function() { burnHFWI.bringToFront(); burnStandard.bringToFront(); });
 
     // Layer control
     const baseMaps = {
