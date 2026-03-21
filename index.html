@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edmonton Urban Wildfire Risk — Canopy Analysis &amp; Burn Probability</title>
+    <title>Edmonton BurnP3+ Cell2Fire Simulation — Urban Wildfire Burn Probability</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,7 +40,6 @@
         .card code { background: #252d3a; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.82rem; color: #7dd3fc; }
         .card ul { padding-left: 1.2rem; font-size: 0.88rem; line-height: 1.8; color: #b0b8c4; }
 
-        .fuel-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
         .fuel-swatch { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
 
         .section-title { font-size: 1.3rem; font-weight: 600; margin-top: 2.5rem; margin-bottom: 0.5rem; color: #e7e9ea; }
@@ -66,8 +65,10 @@
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .legend-color { width: 14px; height: 14px; border-radius: 2px; }
 
-        .layer-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 3px 0; }
-        .layer-toggle input { cursor: pointer; }
+        .pipeline { display: flex; align-items: center; gap: 0; margin: 1.5rem 0; flex-wrap: wrap; }
+        .pipeline-step { background: #1a1f2e; border: 1px solid #2a3040; border-radius: 6px; padding: 0.6rem 1rem; font-size: 0.82rem; text-align: center; }
+        .pipeline-step strong { display: block; color: #e94560; font-size: 0.75rem; margin-bottom: 0.2rem; }
+        .pipeline-arrow { color: #e94560; font-size: 1.2rem; padding: 0 0.3rem; }
 
         footer { text-align: center; padding: 2rem; color: #555; font-size: 0.8rem; border-top: 1px solid #1a1f2e; }
         footer a { color: #e94560; text-decoration: none; }
@@ -76,8 +77,8 @@
 <body>
 
 <div class="header">
-    <h1>Edmonton Urban Wildfire Risk Assessment</h1>
-    <div class="subtitle">FBP Fuel Type Classification &amp; BurnP3 Burn Probability Analysis — City of Edmonton, Alberta</div>
+    <h1>Edmonton BurnP3+ Cell2Fire Simulation</h1>
+    <div class="subtitle">Urban wildfire burn probability modelling using LiDAR-derived CFFDRS fuel types &mdash; City of Edmonton, Alberta</div>
 </div>
 
 <div id="map"></div>
@@ -87,37 +88,116 @@
     <div class="stat-grid">
         <div class="stat-box">
             <div class="value">29,008 ha</div>
-            <div class="label">Total Fuel Area</div>
+            <div class="label">Classified Fuel Area</div>
         </div>
         <div class="stat-box">
             <div class="value">500</div>
             <div class="label">Monte Carlo Iterations</div>
         </div>
         <div class="stat-box">
-            <div class="value">2,499</div>
-            <div class="label">Simulated Fire Ignitions</div>
+            <div class="value">1,594 ha</div>
+            <div class="label">Total Simulated Area Burned</div>
         </div>
         <div class="stat-box">
             <div class="value">95.5 ha</div>
-            <div class="label">Largest Simulated Fire</div>
+            <div class="label">Largest Single Fire</div>
         </div>
     </div>
 
-    <div class="section-title">Fuel Type Classification</div>
-    <div class="section-desc">CFFDRS FBP System fuel types derived from 2025 City of Edmonton vegetation LiDAR</div>
+    <!-- PIPELINE -->
+    <div class="section-title">Simulation Pipeline</div>
+    <div class="section-desc">End-to-end workflow from LiDAR point cloud to burn probability surface</div>
+
+    <div class="pipeline">
+        <div class="pipeline-step"><strong>1. LiDAR</strong>2025 Vegetation<br>Point Cloud</div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-step"><strong>2. Tree Detection</strong>Individual Crown<br>Segmentation</div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-step"><strong>3. RF Classifier</strong>Conifer / Deciduous<br>(90.4% accuracy)</div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-step"><strong>4. FBP Fuel Grid</strong>CFFDRS Fuel Types<br>20m &times; 20m</div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-step"><strong>5. Cell2Fire</strong>Fire Spread<br>Simulation</div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-step"><strong>6. BurnP3+</strong>Burn Probability<br>Surface</div>
+    </div>
+
+    <!-- CELL2FIRE / BURNP3 -->
+    <div class="section-title">BurnP3+ Cell2Fire Simulation</div>
+    <div class="section-desc">Monte Carlo fire spread simulation using the Cell2Fire engine with CFFDRS FBP System fire behaviour equations</div>
+
+    <div class="grid">
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>How It Works</h3>
+            <p><strong>Cell2Fire</strong> is a cell-based fire spread simulator that propagates fire across a raster grid using the Canadian Forest Fire Behaviour Prediction (FBP) System equations. Each cell's rate of spread, head fire intensity, and crown fire behaviour are computed from its fuel type, topography, and the input fire weather conditions.</p>
+            <p><strong>BurnP3+</strong> wraps Cell2Fire in a Monte Carlo framework: hundreds of fires are ignited at random locations across the landscape under defined weather scenarios. The burn probability for each cell is the proportion of iterations in which that cell burned. This produces a spatially explicit probability surface showing where fire is most likely to spread &mdash; not just where it might start.</p>
+            <p>The simulation accounts for fuel continuity, topographic slope and aspect effects on spread rate, and the transition between surface and crown fire in conifer stands. Fires that ignite in non-fuel cells do not spread. Fires in grass fuels spread rapidly but at low intensity; fires reaching C-2 (spruce) or M-2 (mixedwood) fuels can crown and generate the highest head fire intensities.</p>
+        </div>
+
+        <div class="card">
+            <h3>Two Scenarios: Standard vs. High HFI</h3>
+            <p>Two fire weather scenarios bracket the range of wildfire risk:</p>
+            <table>
+                <tr><th>Scenario</th><th>Conditions</th></tr>
+                <tr>
+                    <td><strong>Standard</strong></td>
+                    <td>Mean seasonal FFMC, ISI, and BUI from Edmonton-area stations. Most ignitions self-extinguish or remain small. Baseline probability under normal summer conditions.</td>
+                </tr>
+                <tr>
+                    <td><strong>High HFI</strong></td>
+                    <td>90th+ percentile FFMC, ISI, and BUI reflecting drought and high-wind events. Fires spread rapidly through grass corridors and crown into forested ravines, producing the high-probability corridors visible along the river valley.</td>
+                </tr>
+            </table>
+            <p style="margin-top:0.8rem">The contrast between scenarios shows how sensitive Edmonton's urban-wildland interface is to fire weather escalation &mdash; the same fuel landscape produces dramatically different risk profiles.</p>
+        </div>
+
+        <div class="card">
+            <h3>Simulation Results (High HFI)</h3>
+            <table>
+                <tr><th>Parameter</th><th style="text-align:right">Value</th></tr>
+                <tr><td>Monte Carlo iterations</td><td class="num">500</td></tr>
+                <tr><td>Total ignition points</td><td class="num">2,499</td></tr>
+                <tr><td>Fires with measurable spread</td><td class="num">939 (37.6%)</td></tr>
+                <tr><td>Total simulated area burned</td><td class="num">1,594.2 ha</td></tr>
+                <tr><td>Mean fire size (spreading fires)</td><td class="num">1.70 ha</td></tr>
+                <tr><td>Maximum single fire</td><td class="num">95.5 ha</td></tr>
+                <tr><td>Mean fire duration</td><td class="num">4.0 timesteps</td></tr>
+                <tr><td>Mean hours burning</td><td class="num">48.3 hrs</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Fire Spread by Fuel Type</h3>
+            <p>Of the 939 fires that achieved measurable spread under High HFI conditions:</p>
+            <table>
+                <tr><th>Fuel Type</th><th style="text-align:right">Fires</th><th style="text-align:right">%</th></tr>
+                <tr><td>O-1b Standing Grass</td><td class="num">586</td><td class="num">62.4%</td></tr>
+                <tr><td>O-1a Matted Grass</td><td class="num">234</td><td class="num">24.9%</td></tr>
+                <tr><td>D-2 Green Aspen</td><td class="num">65</td><td class="num">6.9%</td></tr>
+                <tr><td>M-2 Boreal Mixedwood</td><td class="num">43</td><td class="num">4.6%</td></tr>
+                <tr><td>C-2 Boreal Spruce</td><td class="num">11</td><td class="num">1.2%</td></tr>
+            </table>
+            <p style="margin-top:0.8rem">Grass fuels carry 87% of fire spread by count, but the highest head fire intensities and largest individual fires occur when fire transitions into C-2 spruce and M-2 mixedwood stands along the river valley escarpments.</p>
+        </div>
+    </div>
+
+    <!-- FUEL CLASSIFICATION -->
+    <div class="section-title">FBP Fuel Type Classification</div>
+    <div class="section-desc">CFFDRS fuel grid derived from 2025 City of Edmonton vegetation LiDAR</div>
 
     <div class="grid">
         <div class="card">
             <h3>Classification Method</h3>
-            <p>Individual tree crowns were classified as conifer or deciduous using a Random Forest classifier (v2) trained on the 2025 leaf-on LiDAR collection, achieving <strong>90.4% accuracy</strong>.</p>
-            <p>Fuel types were assigned within UPLVI Vegetated and Naturalized Area polygons (Edmonton Open Data) at <code>20m &times; 20m</code> resolution in <code>EPSG:3776</code> (NAD83 / Alberta 3TM 114W).</p>
+            <p>Individual tree crowns were segmented from the 2025 leaf-on LiDAR point cloud and classified as conifer or deciduous using a Random Forest model (v2, <strong>90.4% accuracy</strong>).</p>
+            <p>FBP fuel types were assigned within UPLVI Vegetated and Naturalized Area polygons (Edmonton Open Data) at <code>20m &times; 20m</code> cell resolution in <code>EPSG:3776</code>.</p>
             <ul>
-                <li>&ge;75% conifer trees &rarr; <strong>C-2</strong> (Boreal Spruce)</li>
-                <li>&ge;75% deciduous trees &rarr; <strong>D-2</strong> (Green Aspen)</li>
-                <li>25&ndash;75% conifer &rarr; <strong>M-2</strong> (Boreal Mixedwood Green) + PC%</li>
+                <li>&ge;75% conifer crowns per cell &rarr; <strong>C-2</strong> (Boreal Spruce)</li>
+                <li>&ge;75% deciduous crowns &rarr; <strong>D-2</strong> (Green Aspen)</li>
+                <li>25&ndash;75% conifer &rarr; <strong>M-2</strong> (Boreal Mixedwood Green) + percent conifer grid</li>
                 <li>&lt;2 trees per cell &rarr; <strong>O-1b</strong> (Standing Grass)</li>
                 <li>Outside natural areas &rarr; <strong>NF</strong> (Non-fuel)</li>
             </ul>
+            <p style="margin-top:0.5rem">Spruce is Edmonton's dominant conifer, so C-2 was selected over C-3. Leaf-on green variants (D-2, M-2) are used; substitute D-1/M-1 for leaf-off spring scenarios.</p>
         </div>
         <div class="card">
             <h3>Fuel Type Distribution</h3>
@@ -130,92 +210,42 @@
                 <tr><td><span class="fuel-swatch" style="background:#d2f06e;display:inline-block;vertical-align:middle"></span> O-1b Standing Grass</td><td>32</td><td class="num">7,644</td><td class="num">9.7%</td></tr>
                 <tr><td style="color:#666">NF Non-fuel</td><td>99</td><td class="num">49,434</td><td class="num">63.0%</td></tr>
             </table>
-            <p style="margin-top:0.8rem">Grid: <code>1461 &times; 2115</code> cells &bull; Total fuel: <strong>29,008 ha</strong></p>
+            <p style="margin-top:0.8rem">Grid: <code>1461 &times; 2115</code> cells &bull; Total fuel: <strong>29,008 ha</strong> &bull; Non-fuel: 49,434 ha</p>
         </div>
     </div>
 
-    <div class="section-title">Burn Probability Simulation</div>
-    <div class="section-desc">Monte Carlo fire simulation comparing two fire weather scenarios</div>
-
-    <div class="grid">
-        <div class="card" style="grid-column: 1 / -1;">
-            <h3>Two Scenarios: Standard vs. High HFI</h3>
-            <p>Two fire weather scenarios were modelled to bracket the range of wildfire risk across Edmonton's natural areas:</p>
-            <table>
-                <tr><th>Scenario</th><th>Description</th><th>Fire Weather Conditions</th></tr>
-                <tr>
-                    <td><strong>Standard</strong></td>
-                    <td>Represents typical summer fire weather using mean seasonal FWI values. Most ignitions self-extinguish or remain small. Provides a baseline probability of fire occurrence under normal conditions.</td>
-                    <td>Mean seasonal FFMC, ISI, and BUI values from Edmonton-area weather stations</td>
-                </tr>
-                <tr>
-                    <td><strong>High HFI Summer</strong></td>
-                    <td>Represents peak fire danger using elevated Head Fire Intensity conditions (90th+ percentile fire weather). Fires spread rapidly through grass and into forest fuels along the river valley, producing the yellow/orange/red corridors visible on the map.</td>
-                    <td>90th percentile+ FFMC, ISI, and BUI values reflecting drought and high-wind conditions</td>
-                </tr>
-            </table>
-            <p style="margin-top:0.8rem">Toggle between scenarios using the layer control on the map. The contrast between them illustrates how sensitive Edmonton's urban-wildland interface is to fire weather escalation.</p>
-        </div>
-        <div class="card">
-            <h3>Simulation Parameters (High HFI)</h3>
-            <p>Fire ignitions were simulated across the Edmonton fuel grid using the BurnP3 framework with <strong>500 iterations</strong> and randomized ignition locations weighted by fuel availability.</p>
-            <table>
-                <tr><th>Parameter</th><th style="text-align:right">Value</th></tr>
-                <tr><td>Iterations</td><td class="num">500</td></tr>
-                <tr><td>Total ignitions</td><td class="num">2,499</td></tr>
-                <tr><td>Fires with spread</td><td class="num">939 (37.6%)</td></tr>
-                <tr><td>Total area burned</td><td class="num">1,594.2 ha</td></tr>
-                <tr><td>Mean fire size</td><td class="num">1.70 ha</td></tr>
-                <tr><td>Max fire size</td><td class="num">95.5 ha</td></tr>
-                <tr><td>Mean fire duration</td><td class="num">4.0 timesteps</td></tr>
-                <tr><td>Mean hours burning</td><td class="num">48.3 hrs</td></tr>
-            </table>
-        </div>
-        <div class="card">
-            <h3>Fire Spread by Fuel Type</h3>
-            <p>Of the 939 fires that achieved measurable spread:</p>
-            <table>
-                <tr><th>Fuel Type</th><th style="text-align:right">Fires</th><th style="text-align:right">%</th></tr>
-                <tr><td>Standing Grass (O-1b)</td><td class="num">586</td><td class="num">62.4%</td></tr>
-                <tr><td>Matted Grass (O-1a)</td><td class="num">234</td><td class="num">24.9%</td></tr>
-                <tr><td>Green Aspen (D-2)</td><td class="num">65</td><td class="num">6.9%</td></tr>
-                <tr><td>Boreal Mixedwood (M-2)</td><td class="num">43</td><td class="num">4.6%</td></tr>
-                <tr><td>Boreal Spruce (C-2)</td><td class="num">11</td><td class="num">1.2%</td></tr>
-            </table>
-            <p style="margin-top:0.8rem">Grass fuels dominate fire spread (87.3%), but the highest-intensity fires occur in conifer and mixedwood stands along the river valley.</p>
-        </div>
-    </div>
-
+    <!-- TECHNICAL NOTES -->
     <div class="section-title">Technical Notes</div>
     <div class="grid">
         <div class="card">
-            <h3>Data Sources</h3>
+            <h3>Input Data</h3>
             <ul>
-                <li><strong>LiDAR:</strong> 2025 City of Edmonton Vegetation LiDAR (leaf-on)</li>
+                <li><strong>LiDAR:</strong> 2025 City of Edmonton Vegetation LiDAR (leaf-on acquisition)</li>
                 <li><strong>Natural Areas:</strong> UPLVI Vegetated + Naturalized Areas (Edmonton Open Data)</li>
-                <li><strong>Classifier:</strong> Random Forest v2 conifer/deciduous (90.4% accuracy)</li>
-                <li><strong>Fire Model:</strong> CFFDRS FBP System / BurnP3 framework</li>
+                <li><strong>Tree Classifier:</strong> Random Forest v2 conifer/deciduous (90.4% accuracy)</li>
+                <li><strong>Elevation:</strong> LiDAR-derived DEM for slope/aspect inputs to FBP spread equations</li>
+                <li><strong>Fire Weather:</strong> Edmonton-area station data (FFMC, ISI, BUI, wind speed/direction)</li>
                 <li><strong>CRS:</strong> EPSG:3776 (NAD83 / Alberta 3TM ref merid 114 W)</li>
-                <li><strong>Resolution:</strong> 20m &times; 20m grid cells</li>
+                <li><strong>Cell Size:</strong> 20m &times; 20m</li>
             </ul>
         </div>
         <div class="card">
             <h3>Assumptions &amp; Limitations</h3>
             <ul>
-                <li>Leaf-on collection: D-2 and M-2 (green variants) used; for leaf-off modeling, substitute D-1/M-1</li>
-                <li>Spruce is Edmonton's dominant conifer; C-2 used over C-3</li>
-                <li>Grass classification based on UPLVI/naturalized boundaries, not spectral analysis</li>
-                <li>Urban canopy trees outside designated natural areas classified as NF (non-fuel)</li>
-                <li>Percent conifer raster provided for M-2 cells (BurnP3 PC input)</li>
-                <li>Two scenarios shown: High HFI (summer peak) and Standard conditions</li>
+                <li>Fuel classification is based on natural area boundaries, not spectral grass detection &mdash; grass outside UPLVI/Naturalized polygons is classified NF</li>
+                <li>Urban canopy trees outside designated natural areas are classified as NF (non-fuel), excluding private property and boulevard trees from the fuel grid</li>
+                <li>Percent conifer raster is provided for M-2 cells as required BurnP3 PC input</li>
+                <li>Suppression response is not modelled &mdash; all fires burn freely until extinguished by fuel discontinuity or duration limits</li>
+                <li>Wind direction is held constant within each iteration; gustiness and wind shifts are not simulated</li>
+                <li>Spotting (ember transport) is not included in the current Cell2Fire configuration</li>
             </ul>
         </div>
     </div>
 </div>
 
 <footer>
-    Edmonton Urban Wildfire Risk Assessment &mdash; City of Edmonton, Urban Forestry &amp; Ecology
-    <br>Built with <a href="https://leafletjs.com">Leaflet</a> &bull; Data: CFFDRS/FBP &bull; Analysis: 2025
+    Edmonton BurnP3+ Cell2Fire Simulation &mdash; City of Edmonton, Urban Forestry &amp; Ecology
+    <br>Built with <a href="https://leafletjs.com">Leaflet</a> &bull; Fire model: CFFDRS FBP / Cell2Fire &bull; Analysis: 2025
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -265,7 +295,7 @@
     };
 
     const overlays = {
-        "Burn Probability — High HFI Summer": burnHFWI,
+        "Burn Probability — High HFI": burnHFWI,
         "Burn Probability — Standard": burnStandard,
         "FBP Fuel Type Classification": fuelType
     };
@@ -284,9 +314,9 @@
             <div class="legend-item"><div class="legend-color" style="background:#b4d250"></div> O-1a Matted Grass</div>
             <div class="legend-item"><div class="legend-color" style="background:#d2f06e"></div> O-1b Standing Grass</div>
             <h4 style="margin-top:8px">Burn Probability</h4>
-            <div class="legend-item"><div class="legend-color" style="background:#ffff00"></div> Low</div>
-            <div class="legend-item"><div class="legend-color" style="background:#ff8c00"></div> Moderate</div>
-            <div class="legend-item"><div class="legend-color" style="background:#ff0000"></div> High</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ffdc00"></div> Low</div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff6400"></div> Moderate</div>
+            <div class="legend-item"><div class="legend-color" style="background:#dc001e"></div> High</div>
         `;
         return div;
     };
