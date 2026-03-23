@@ -138,19 +138,23 @@
 
         <div class="card">
             <h3>Two Scenarios: Standard vs. High HFI</h3>
-            <p>Two fire weather scenarios bracket the range of wildfire risk:</p>
+            <p>Three fire weather scenarios bracket the range of wildfire risk:</p>
             <table>
                 <tr><th>Scenario</th><th>Conditions</th></tr>
                 <tr>
-                    <td><strong>Standard</strong></td>
-                    <td>Mean seasonal FFMC, ISI, and BUI from Edmonton-area stations. Most ignitions self-extinguish or remain small. Baseline probability under normal summer conditions.</td>
+                    <td><strong>Baseline</strong></td>
+                    <td>Mean seasonal FFMC, ISI, and BUI from Edmonton-area stations. Most ignitions self-extinguish or remain small. Represents fire probability under normal summer conditions.</td>
                 </tr>
                 <tr>
-                    <td><strong>High HFI</strong></td>
-                    <td>90th+ percentile FFMC, ISI, and BUI reflecting drought and high-wind events. Fires spread rapidly through grass corridors and crown into forested ravines, producing the high-probability corridors visible along the river valley.</td>
+                    <td><strong>Spring Drought</strong></td>
+                    <td>Elevated spring fire weather with cured grass fuels (O-1a matted grass) and low green-up. Simulates early-season drought conditions before leaf-out when deciduous fuels offer less resistance to spread.</td>
+                </tr>
+                <tr>
+                    <td><strong>Summer Extreme</strong></td>
+                    <td>90th+ percentile FFMC, ISI, and BUI reflecting sustained drought and high-wind events. Fires spread rapidly through grass corridors and crown into forested ravines, producing the highest-probability corridors along the river valley.</td>
                 </tr>
             </table>
-            <p style="margin-top:0.8rem">The contrast between scenarios shows how sensitive Edmonton's urban-wildland interface is to fire weather escalation &mdash; the same fuel landscape produces dramatically different risk profiles.</p>
+            <p style="margin-top:0.8rem">Toggle between all three scenarios on the map. The progression from Baseline &rarr; Spring Drought &rarr; Summer Extreme shows how sensitive Edmonton's urban-wildland interface is to fire weather escalation.</p>
         </div>
 
         <div class="card">
@@ -292,18 +296,12 @@
     const tileOpts = { tms: false, opacity: 1.0, maxNativeZoom: 16, maxZoom: 19, minZoom: 9, bounds: bounds };
 
     const fuelType = L.tileLayer('tiles/fuel_type/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { opacity: 0.4, pane: 'fuelPane' }));
-    const burnHFWI = L.tileLayer('tiles/burn_hfwi/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { pane: 'burnPane' }));
-    const burnStandard = L.tileLayer('tiles/burn_standard/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { pane: 'burnPane' }));
+    const burnSummerExtreme = L.tileLayer('tiles/burn_summer_extreme/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { pane: 'burnPane' }));
+    const burnSpringDrought = L.tileLayer('tiles/burn_spring_drought/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { pane: 'burnPane' }));
+    const burnBaseline = L.tileLayer('tiles/burn_baseline/{z}/{x}/{y}.png', Object.assign({}, tileOpts, { pane: 'burnPane' }));
 
     fuelType.addTo(map);
-    burnHFWI.addTo(map);
-    burnHFWI.bringToFront();
-
-    // Keep hammering the z-order until tiles settle
-    setTimeout(function() { burnHFWI.bringToFront(); }, 500);
-    setTimeout(function() { burnHFWI.bringToFront(); }, 1500);
-    setTimeout(function() { burnHFWI.bringToFront(); }, 3000);
-    map.on('moveend zoomend', function() { burnHFWI.bringToFront(); burnStandard.bringToFront(); });
+    burnSummerExtreme.addTo(map);
 
     // Layer control
     const baseMaps = {
@@ -313,8 +311,9 @@
     };
 
     const overlays = {
-        "Burn Probability — High HFI": burnHFWI,
-        "Burn Probability — Standard": burnStandard,
+        "Burn Probability — Summer Extreme": burnSummerExtreme,
+        "Burn Probability — Spring Drought": burnSpringDrought,
+        "Burn Probability — Baseline": burnBaseline,
         "FBP Fuel Type Classification": fuelType
     };
 
@@ -340,11 +339,14 @@
     };
     legend.addTo(map);
 
-    // Ensure burn layers always render on top when toggled
+    // Ensure burn layers always render on top
     map.on('overlayadd', function(e) {
-        if (e.name.includes('Burn')) {
-            e.layer.bringToFront();
-        }
+        if (e.name.includes('Burn')) { e.layer.bringToFront(); }
+    });
+    map.on('moveend zoomend', function() {
+        [burnSummerExtreme, burnSpringDrought, burnBaseline].forEach(function(l) {
+            if (map.hasLayer(l)) l.bringToFront();
+        });
     });
 
     map.fitBounds(bounds);
